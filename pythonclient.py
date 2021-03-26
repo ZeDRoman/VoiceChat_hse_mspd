@@ -19,11 +19,10 @@ from Crypto.Cipher import AES
 from socket import timeout
 # socket connect to the server
 
+LEN = 283
 
-
-# SERVER_IP = '35.237.61.15'
-# SERVER_IP = '127.0.0.1'
-SERVER_IP = '84.252.129.57'
+DELIMITER = b'|DELIMITER|'
+SERVER_IP = '130.193.36.61'
 SERVER_PORT = 9001
 BUFMAX = 512
 running = True
@@ -94,9 +93,10 @@ def record(t):
 def transmit(buf, socket):
     global running
     # print(f"PICKLED VAL ____ = {pickle.dumps(buf)}")
-    pickled = pickle.dumps(buf)
+    pickled = pickle.dumps(buf) + DELIMITER
     # print(f"PICKLED ______ =  {pickled}")
-    encrypted_str = encrypt(pickled)
+    encrypted_str = pickled #encrypt(pickled)
+    # print(len(pickled))
     # decrypted = decrypt(encrypted_str)
     # print(f"PICKLED ___ENC = {decrypted}")
     try:
@@ -158,9 +158,9 @@ def play(buf):
 def receive(socket):
     jsn = b''
     while running:
-        while (len(jsn) < 304) and running:
+        while (jsn.find(DELIMITER) == -1) and running:
             try:
-                jsn += socket.recv(304)
+                jsn += socket.recv(LEN)
             except timeout:
                 print("SOCKET TIMEOUT")
                 continue
@@ -170,17 +170,20 @@ def receive(socket):
                 yield None
 
         try:
-            dat = jsn[:304]
+            pos = jsn.find(DELIMITER)
+            dat = jsn[:pos]
             # print(len(dat))
             # print(len(dat) % 16)
-            dat = decrypt(dat)
+            # dat = decrypt(dat)
             # print(f"DATA RECEIVED = {dat}")
             buf = pickle.loads(dat)
+            # buf = dat
 
         except pickle.UnpicklingError:
-            print(f"    @@@@@ UNPICKLE ERROR @@@@@    INPUT______ of len = {sys.getsizeof(jsn)} ::{decrypt(jsn[:304])}")
+            print(f"    @@@@@ UNPICKLE ERROR @@@@@    INPUT______ of len = {sys.getsizeof(dat)} ::{dat}")
+            jsn = jsn[pos + len(DELIMITER):]
             continue
-        jsn = jsn[304:]
+        jsn = jsn[pos + len(DELIMITER):]
         yield buf
 
 def receive_play_thread(serversocket):

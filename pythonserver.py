@@ -4,8 +4,9 @@ import pickle
 import socket
 
 SOCK_IP = '10.130.0.35'
+# SOCK_IP = '10.130.0.35'
 # SOCK_IP = '84.252.129.57'
-# SOCK_IP = '127.0.0.1'
+# SOCK_IP = '130.193.36.61'
 SOCK_PORT = 9001
 
 class Client:
@@ -108,11 +109,13 @@ def main():
     serversocket.bind((SOCK_IP, SOCK_PORT))
     serversocket.listen(3)
 
+    threads = {}
+
     while True:
         try:
             client_id = (serversocket.accept(),)
-            thrd1 = Thread(target=client_handler, args=client_id)
-            thrd1.start()
+            threads[client_id] = Thread(target=client_handler, args=client_id)
+            threads[client_id].start()
         except KeyboardInterrupt:
             serversocket.close()
             break
