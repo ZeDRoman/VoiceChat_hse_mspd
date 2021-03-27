@@ -34,7 +34,7 @@ item_available = Condition()
 SLEEPTIME = 0.000001
 audio_available = Condition()
 
-i_sdstream = sd.InputStream(samplerate=44100, channels=1, dtype='float32')
+i_sdstream = sd.InputStream(samplerate=44100, channels=1, dtype='float32', latency='low')
 o_sdstream = sd.OutputStream(samplerate=44100, channels=1, dtype='float32')
 i_sdstream.start()
 o_sdstream.start()
@@ -86,6 +86,11 @@ class SharedBuf:
         self.buffer = self.buffer[x:]
         return data
 
+
+def callibrate():
+    global running
+    if running:
+        i_sdstream.read(i_sdstream.read_available)
 
 # record t seconds of audio
 def record(t):
@@ -154,7 +159,6 @@ def record_transmit_thread(serversocket):
 
 # use a sound library to play the buffer
 def play(buf):
-    # print("playing_audio")
     global running
     if running:
         o_sdstream.write(buf)
@@ -166,9 +170,12 @@ def receive(socket):
             try:
                 jsn += socket.recv(LEN)
             except timeout:
+                try:
+                    callibrate()
+                except Exception as e:
+                    print('Cal ex: {}'.format(e))
                 print("NO DATA FROM SERVER (maybe you are the only participant)")
                 continue
-                # yield None
             except ConnectionResetError:
                 print("Recipient disconnected")
                 yield None
@@ -176,12 +183,7 @@ def receive(socket):
         try:
             pos = jsn.find(DELIMITER)
             dat = jsn[:pos]
-            # print(len(dat))
-            # print(len(dat) % 16)
-            # dat = decrypt(dat)
-            # print(f"DATA RECEIVED = {dat}")
             buf = pickle.loads(dat)
-            # buf = dat
 
         except pickle.UnpicklingError:
             print(f"    @@@@@ UNPICKLE ERROR @@@@@    INPUT______ of len = {sys.getsizeof(dat)} ::{dat}")
@@ -201,7 +203,6 @@ def receive_play_thread(serversocket):
         rece_generator = receive(serversocket)
         while running:
             sleep(SLEEPTIME)
-            # while sys.getsizeof(jsn) < 314:
             try:
                 data = next(rece_generator)
             except StopIteration:
@@ -231,8 +232,6 @@ def receive_play_thread(serversocket):
     play_thread = Thread(target=player_consumer, args=(rbuf,))
     rece_thread.start()
     play_thread.start()
-    # input("press enter to exit")
-    # running = False
 
     rece_thread.join()
     play_thread.join()
@@ -246,9 +245,9 @@ def main(args):
     p_thread = Thread(target=receive_play_thread, args=(serversocket,))
     t_thread.start()
     p_thread.start()
-    # input("press enter to exit")
     while 42:
-        sleep(5)
+        sleep(10)
+        callibrate()
     running = False
     i_sdstream.stop()
     o_sdstream.stop()
@@ -265,13 +264,10 @@ def connect(args):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((SERVER_IP, SERVER_PORT))
 
-    # source_name = str(input("enter source name :"))
     source_name = args.login
     print(f"hello {source_name}")
     print(f"message length = {len((source_name + (' '*(512-len(source_name)))).encode())}")
     s.send((source_name + (' '*(512-len(source_name)))).encode())
-
-    # destination_name = str(input("enter destination room name :"))
     destination_name = args.room
 
     s.send((destination_name + (' '*(512-len(destination_name)))).encode())

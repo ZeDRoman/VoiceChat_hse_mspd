@@ -1,1 +1,7 @@
-b: 
+a: hi
+b: lol
+a: rrr
+b: chat
+a: hey
+a: он превратился в полную мешанину
+b: !!exit
