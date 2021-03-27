@@ -33,8 +33,10 @@ item_available = Condition()
 SLEEPTIME = 0.000001
 audio_available = Condition()
 
-sdstream = sd.Stream(samplerate=44100, channels=1, dtype='float32')
-sdstream.start()
+i_sdstream = sd.InputStream(samplerate=44100, channels=1, dtype='float32')
+o_sdstream = sd.OutputStream(samplerate=44100, channels=1, dtype='float32')
+i_sdstream.start()
+o_sdstream.start()
 
 key = b'thisisthepasswordforAESencryptio'
 # random.seed(input("ENTER RANDOM SEED :"))
@@ -88,7 +90,7 @@ class SharedBuf:
 def record(t):
     global running
     if running:
-        return sdstream.read(t)[0]
+        return i_sdstream.read(t)[0]
 
 
 def transmit(buf, socket):
@@ -154,7 +156,7 @@ def play(buf):
     # print("playing_audio")
     global running
     if running:
-        sdstream.write(buf)
+        o_sdstream.write(buf)
 
 def receive(socket):
     jsn = b''
@@ -245,7 +247,8 @@ def main():
     p_thread.start()
     input("press enter to exit")
     running = False
-    sdstream.stop()
+    i_sdstream.stop()
+    o_sdstream.stop()
     t_thread.join()
     p_thread.join()
     serversocket.close()
