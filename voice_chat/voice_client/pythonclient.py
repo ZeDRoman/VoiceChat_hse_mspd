@@ -246,7 +246,9 @@ def main(args):
     p_thread = Thread(target=receive_play_thread, args=(serversocket,))
     t_thread.start()
     p_thread.start()
-    input("press enter to exit")
+    # input("press enter to exit")
+    while 42:
+        sleep(5)
     running = False
     i_sdstream.stop()
     o_sdstream.stop()

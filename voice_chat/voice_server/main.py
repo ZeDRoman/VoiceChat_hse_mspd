@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import subprocess
 
 
 def login(request):
@@ -30,7 +31,7 @@ def login(request):
 
 
 class Server:
-    def __init__(self, ip="127.0.0.1", port=32007):
+    def __init__(self, ip="10.130.0.35", port=32007):
         self.ip = ip
         self.port = port
         self.users = {}
@@ -83,6 +84,7 @@ print("STARTING SERVER")
 print("=" * 32)
 
 if __name__ == '__main__':
+    _ = subprocess.Popen(['python3', 'pythonserver.py'])
     if len(sys.argv) > 1:
         ip = sys.argv[1]
         port = int(sys.argv[2])

@@ -69,7 +69,7 @@ class Client:
                     print('You already are in room {}'.format(self.voice_room_name))
                 else:
                     self.voice_room_name = message.split()[1]
-                    self.voice_room_process = subprocess.Popen(['python3', 'pythonclient.py', '', self.voice_room_name])
+                    self.voice_room_process = subprocess.Popen(['python3', 'pythonclient.py', self.name, self.voice_room_name])
             elif message == '!leave':
                 if self.voice_room_process is None:
                     print('You are not in the room')
