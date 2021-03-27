@@ -17,6 +17,7 @@ import numpy as np
 import random
 from Crypto.Cipher import AES
 from socket import timeout
+import argparse
 # socket connect to the server
 
 LEN = 1024
@@ -238,8 +239,8 @@ def receive_play_thread(serversocket):
     return
 
 
-def main():
-    serversocket = connect()
+def main(args):
+    serversocket = connect(args)
     global running
     t_thread = Thread(target=record_transmit_thread, args=(serversocket,))
     p_thread = Thread(target=receive_play_thread, args=(serversocket,))
@@ -254,7 +255,7 @@ def main():
     serversocket.close()
 
 
-def connect():
+def connect(args):
     global source_name
     global SERVER_IP
     global SERVER_PORT
@@ -262,12 +263,15 @@ def connect():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((SERVER_IP, SERVER_PORT))
 
-    source_name = str(input("enter source name :"))
+    # source_name = str(input("enter source name :"))
+    source_name = args.login
     print(f"hello {source_name}")
     print(f"message length = {len((source_name + (' '*(512-len(source_name)))).encode())}")
     s.send((source_name + (' '*(512-len(source_name)))).encode())
 
-    destination_name = str(input("enter destination room name :"))
+    # destination_name = str(input("enter destination room name :"))
+    destination_name = args.room
+
     s.send((destination_name + (' '*(512-len(destination_name)))).encode())
     sleep(2)
     val = s.recv(2)
@@ -278,7 +282,12 @@ def connect():
     return s
 
 
-main()
+parser = argparse.ArgumentParser(description='Great Description To Be Here')
+parser.add_argument("login", help="login")
+parser.add_argument("room", help="room")
+args = parser.parse_args()
+
+main(args)
 # 2 separate websocket connections for receiving and sending files
 # 2 separate threads to handle transmission and playback of the audio files
 
