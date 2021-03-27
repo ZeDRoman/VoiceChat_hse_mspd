@@ -10,18 +10,21 @@ SOCK_IP = '10.130.0.35'
 SOCK_PORT = 9001
 
 class Client:
-    allClients = []
     availableClients = {}  # {'client name' : client object}
+    rooms = {} # {'room_name': set(clients)}
+    # client_room = {} # {'client_name': 'room_name'}
 
 
     def __init__(self, client_ptr):
-        Client.allClients.append(self)
         self.cl_ptr = client_ptr
         self.name = None
         self.name = self.get_name()
-        self.recipient_name = None
-        self.recipient_name = self.get_recipient_name()
-        print(f"received name {self.name} and recipient {self.recipient_name}")
+        self.room_name = None
+        self.room_name = self.get_room_name()
+        if self.room_name not in Client.rooms:
+            Client.rooms[self.room_name] = set()
+        Client.rooms[self.room_name].add(self.name)
+        print(f"received name {self.name} and recipient {self.room_name}")
         Client.availableClients[self.name] = self
         try:
             self.lobby()
@@ -35,25 +38,6 @@ class Client:
     def lobby(self):
         self.cl_ptr[0].send('go'.encode())
         self.converse()
-        '''
-        cl = None
-        while True:
-            try:
-                cl = Client.availableClients[self.recipient_name]
-                if cl.get_recipient_name() == self.name:
-                    break
-                else:
-                    print("recipient busy.")
-                    sleep(1)
-            except KeyError:
-                print("waiting...")
-                sleep(1)
-                continue
-        if cl is not None:
-            # found a client who wants to connect to self
-            self.cl_ptr[0].send('go'.encode())
-            self.converse(cl)
-        '''
         self.close()
 
     # Enter a loop to keep searching for recipient in available clients
@@ -65,12 +49,12 @@ class Client:
             print(f"Client connected: {self.name}")
         return self.name
 
-    def get_recipient_name(self):
-        if self.recipient_name is None:
+    def get_room_name(self):
+        if self.room_name is None:
             # receive recipient name
-            self.recipient_name = self.cl_ptr[0].recv(512).decode().rstrip()
-            print(f"Client {self.name} wants to connect to {self.recipient_name}")
-        return self.recipient_name
+            self.room_name = self.cl_ptr[0].recv(512).decode().rstrip()
+            print(f"Client {self.name} wants to connect to {self.room_name}")
+        return self.room_name
 
     # def getRecipientSocket(self):
     #     search list of available clients
@@ -80,10 +64,14 @@ class Client:
         try:
             while True:
                 data = self.read()
-                for name, user in Client.availableClients.items():
-                    if name != self.name:
-                        print('sent from {} to {}'.format(self.name, name))
-                        self.send(user, data)
+                for name in Client.rooms[self.get_room_name()]:
+                    try:
+                        user = Client.availableClients.get(name)
+                        if name != self.name:
+                            # print('sent from {} to {}'.format(self.name, name))
+                            self.send(user, data)
+                    except:
+                        continue
         except KeyboardInterrupt:
             print('KeyboardInterrupt')
             self.close()
@@ -98,10 +86,12 @@ class Client:
         return self.cl_ptr[0].recv(1024)
 
     def close(self):
-        Client.allClients.remove(self)
-        Client.availableClients.pop(self.get_name(), None)
-        self.cl_ptr[0].close()
-        print(f"Client {self.name} removed.")
+        try:
+            Client.availableClients.pop(self.get_name(), None)
+            self.cl_ptr[0].close()
+            print(f"Client {self.name} removed.")
+        except:
+            pass
 
 def main():
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -19,7 +19,8 @@ from Crypto.Cipher import AES
 from socket import timeout
 # socket connect to the server
 
-LEN = 283
+LEN = 1024
+NUM = 3
 
 DELIMITER = b'|DELIMITER|'
 SERVER_IP = '130.193.36.61'
@@ -162,7 +163,7 @@ def receive(socket):
             try:
                 jsn += socket.recv(LEN)
             except timeout:
-                print("SOCKET TIMEOUT")
+                print("NO DATA FROM SERVER (maybe you are the only participant)")
                 continue
                 # yield None
             except ConnectionResetError:
@@ -184,6 +185,8 @@ def receive(socket):
             jsn = jsn[pos + len(DELIMITER):]
             continue
         jsn = jsn[pos + len(DELIMITER):]
+        if len(jsn) > NUM * LEN:
+            jsn = b''
         yield buf
 
 def receive_play_thread(serversocket):
@@ -261,7 +264,7 @@ def connect():
     print(f"message length = {len((source_name + (' '*(512-len(source_name)))).encode())}")
     s.send((source_name + (' '*(512-len(source_name)))).encode())
 
-    destination_name = str(input("enter destination name :"))
+    destination_name = str(input("enter destination room name :"))
     s.send((destination_name + (' '*(512-len(destination_name)))).encode())
     sleep(2)
     val = s.recv(2)
