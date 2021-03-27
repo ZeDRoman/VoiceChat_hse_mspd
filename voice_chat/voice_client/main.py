@@ -75,6 +75,8 @@ class Client:
                     print('You are not in the room')
                 else:
                     self.voice_room_process.kill()
+                    self.voice_room_process = None
+                    self.voice_room_name = None
             else:
                 mes = self.name + ": " + message
                 self.admin_socket.send(mes.encode())
