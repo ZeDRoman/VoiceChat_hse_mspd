@@ -63,15 +63,24 @@ class Client:
         print("establishing connection...")
         try:
             while True:
+                if self.get_name() not in Client.availableClients:
+                    self.close()
                 data = self.read()
-                for name in Client.rooms[self.get_room_name()]:
+                #print('name : {}, room: {}'.format(self.get_name(), Client.rooms[self.get_room_name()]))
+                room = Client.rooms[self.get_room_name()].copy()
+                for name in room:
                     try:
                         user = Client.availableClients.get(name)
                         if name != self.name:
                             # print('sent from {} to {}'.format(self.name, name))
                             self.send(user, data)
-                    except:
-                        continue
+                    except Exception as e:
+                        try:
+                            Client.rooms[self.get_room_name()].remove(name)
+                            Client.availableClients.pop(name, None)
+                        except:
+                            pass
+                        print('Ex : {}'.format(e))
         except KeyboardInterrupt:
             print('KeyboardInterrupt')
             self.close()
@@ -83,7 +92,7 @@ class Client:
         cl_object.cl_ptr[0].send(data)
 
     def read(self):
-        return self.cl_ptr[0].recv(1024)
+        return self.cl_ptr[0].recv(10240)
 
     def close(self):
         try:
